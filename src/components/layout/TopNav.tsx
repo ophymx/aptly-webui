@@ -1,8 +1,9 @@
 import { NavLink, Link } from 'react-router-dom'
-import { useVersion, useWhoami } from '@/lib/queries'
+import { useCanWrite, useVersion, useWhoami } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { StatusDot } from '@/components/data/StatusDot'
 import { TaskDrawerTrigger } from '@/components/tasks/TaskDrawer'
+import { Badge } from '@/components/ui/badge'
 
 const sections = [
   { to: '/', label: 'Overview', end: true },
@@ -16,6 +17,7 @@ const sections = [
 export function TopNav() {
   const version = useVersion()
   const whoami = useWhoami()
+  const canWrite = useCanWrite()
 
   return (
     <header className="border-b border-rule bg-ink/80 backdrop-blur-sm sticky top-0 z-30">
@@ -40,6 +42,9 @@ export function TopNav() {
           <div className="flex items-center gap-5">
             <TaskDrawerTrigger />
             <ConnectionPill ok={!version.isError} />
+            {whoami.data?.role !== undefined && !canWrite && (
+              <Badge tone="neutral">read-only</Badge>
+            )}
             {whoami.data?.user && (
               <span className="font-mono text-[12px] text-paper-muted">
                 {whoami.data.user}

@@ -11,12 +11,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCreatePublish } from '@/lib/mutations'
+import { useCanWrite } from '@/lib/queries'
 
 export function PublishSnapshotAction({
   snapshotName,
 }: {
   snapshotName: string
 }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const [prefix, setPrefix] = useState('.')
   const [distribution, setDistribution] = useState('')
@@ -24,6 +26,7 @@ export function PublishSnapshotAction({
   const [skipSigning, setSkipSigning] = useState(true)
   const [gpgKey, setGpgKey] = useState('')
   const mut = useCreatePublish()
+  if (!canWrite) return null
 
   function submit() {
     mut.mutate(

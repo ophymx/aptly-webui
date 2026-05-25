@@ -54,24 +54,40 @@ The UI assumes:
 
 1. Static files are served at `/`.
 2. `/api/*` is reverse-proxied to the aptly daemon.
-3. `/api/whoami` returns `{"user": "..."}` if you want the signed-in user
-   displayed in the top bar. (Optional — the UI falls back silently.)
+3. `/api/whoami` returns `{"user":"…","role":"reader"|"writer"}`. The UI
+   hides write controls when `role !== "writer"`. **The UI's check is UX,
+   not security** — nginx is the actual security boundary and must also
+   reject writes from non-writers (see `limit_except` below). If the `role`
+   field is absent entirely the UI defaults to writer (backwards-compatible
+   with deployments that haven't wired role mapping yet).
 
-Example nginx config combining all three, with an upstream OIDC auth proxy
-(e.g. `oauth2-proxy`) injecting `X-Forwarded-User`:
+Example with [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)
+in front and a single role mapping from IdP groups to `reader` / `writer`:
 
 ```nginx
+# Map IdP groups (a comma-separated list in X-Auth-Request-Groups) to a
+# stable role string. Adjust the group name(s) to match your IdP.
+map $authed_groups $aptly_role {
+  "~\baptly-writers\b"   "writer";
+  default                "reader";
+}
+
 server {
   listen 443 ssl http2;
   server_name aptly.example.internal;
 
-  # SSL config omitted...
+  # SSL config omitted (use the LE fullchain, not just the leaf — Node
+  # clients won't follow AIA to fetch the intermediate).
 
   # Require auth (oauth2-proxy upstream) for everything
   auth_request /oauth2/auth;
   error_page 401 = /oauth2/sign_in;
 
-  auth_request_set $authed_user $upstream_http_x_auth_request_user;
+  # oauth2-proxy must be configured with --set-xauthrequest so it exposes
+  # X-Auth-Request-{User,Email,Groups} on its /oauth2/auth response.
+  auth_request_set $authed_user   $upstream_http_x_auth_request_user;
+  auth_request_set $authed_email  $upstream_http_x_auth_request_email;
+  auth_request_set $authed_groups $upstream_http_x_auth_request_groups;
 
   # SPA
   root /var/www/aptly-webui;
@@ -80,21 +96,33 @@ server {
     try_files $uri /index.html;
   }
 
-  # Proxy to aptly daemon. If the aptly endpoint requires a bearer token,
-  # inject it from a secret loaded into nginx (do NOT pass it from the browser).
+  # Whoami helper used by the UI top-bar and write-control gating.
+  location = /api/whoami {
+    default_type application/json;
+    return 200 '{"user":"$authed_user","role":"$aptly_role"}';
+  }
+
+  # Proxy to aptly daemon. The actual security boundary lives here:
+  # readers are blocked from any non-GET request regardless of what the
+  # UI shows. The bearer token (if upstream needs one) is injected from
+  # nginx; it never reaches the browser.
   location /api/ {
-    rewrite ^/api/(.*)$ /api/$1 break;  # keep /api prefix
+    # Block writes for non-writers. limit_except inverts the listed
+    # methods, so the inner block applies to everything except GET/HEAD.
+    limit_except GET HEAD {
+      if ($aptly_role != "writer") {
+        return 403;
+      }
+    }
+
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-User $authed_user;
-    # proxy_set_header Authorization "Bearer xxxxxxxxxxxxxxxx";  # if upstream needs one
-  }
-
-  # Whoami helper used by the UI top-bar
-  location = /api/whoami {
-    default_type application/json;
-    return 200 '{"user":"$authed_user"}';
+    # proxy_set_header Authorization "Bearer xxxxxxxxxxxxxxxx";
+    # Large uploads (.deb packages):
+    client_max_body_size 256m;
+    proxy_request_buffering off;
   }
 
   # oauth2-proxy callback
@@ -107,8 +135,17 @@ server {
 }
 ```
 
-If you do not have an auth layer, omit the `auth_request` lines and the
-`/api/whoami` block. The UI will simply not show a user pill.
+**Notes**
+
+- The `map` block lives at `http {}` level (not inside `server {}`). Put
+  it in the same file alongside `server`, or in a separate `conf.d` file
+  that's included before this one.
+- Aptly's REST API uses GET for reads and POST/PUT/DELETE for all writes,
+  so the method-based `limit_except` covers the full mutation surface.
+- If your IdP delivers groups via a different oauth2-proxy header (e.g.
+  `X-Forwarded-Groups`), swap the `auth_request_set` line accordingly.
+- If you don't run an auth proxy at all, omit the `auth_request` lines
+  and the `/api/whoami` block. The UI defaults to writer in that case.
 
 ## What's covered
 

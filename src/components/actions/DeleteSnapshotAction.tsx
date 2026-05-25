@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import { Button } from '@/components/ui/button'
 import { useDeleteSnapshot } from '@/lib/mutations'
+import { useCanWrite } from '@/lib/queries'
 
 export function DeleteSnapshotAction({
   name,
@@ -11,10 +12,12 @@ export function DeleteSnapshotAction({
   name: string
   redirectOnSuccess?: boolean
 }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const [force, setForce] = useState(false)
   const mut = useDeleteSnapshot()
   const navigate = useNavigate()
+  if (!canWrite) return null
 
   function confirm() {
     mut.mutate(

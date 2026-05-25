@@ -10,12 +10,15 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useUpdateMirror } from '@/lib/mutations'
+import { useCanWrite } from '@/lib/queries'
 
 export function UpdateMirrorAction({ mirrorName }: { mirrorName: string }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const [ignoreSigs, setIgnoreSigs] = useState(false)
   const [skipExisting, setSkipExisting] = useState(true)
   const mut = useUpdateMirror()
+  if (!canWrite) return null
 
   function submit() {
     mut.mutate(

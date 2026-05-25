@@ -15,6 +15,7 @@ import {
   useCreateSnapshotFromMirror,
   useCreateSnapshotFromRepo,
 } from '@/lib/mutations'
+import { useCanWrite } from '@/lib/queries'
 
 export function CreateSnapshotAction({
   source,
@@ -25,6 +26,7 @@ export function CreateSnapshotAction({
   sourceName: string
   defaultPrefix?: string
 }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -32,6 +34,7 @@ export function CreateSnapshotAction({
   const fromRepo = useCreateSnapshotFromRepo()
   const mut = source === 'mirror' ? fromMirror : fromRepo
   const navigate = useNavigate()
+  if (!canWrite) return null
 
   function defaultName() {
     const d = new Date().toISOString().slice(0, 10)

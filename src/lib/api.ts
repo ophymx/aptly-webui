@@ -148,6 +148,12 @@ export interface PackageDetail {
 
 export interface Whoami {
   user?: string
+  /**
+   * Stable role the proxy maps from IdP groups. The UI treats anything other
+   * than `"writer"` as read-only. When `role` is absent entirely (i.e. the
+   * deploy hasn't wired role mapping yet) the UI defaults to writer.
+   */
+  role?: 'reader' | 'writer' | string
 }
 
 // Aptly task states: 0=INIT, 1=RUNNING, 2=SUCCEEDED, 3=FAILED.

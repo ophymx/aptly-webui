@@ -9,14 +9,16 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { useSnapshots } from '@/lib/queries'
+import { useCanWrite, useSnapshots } from '@/lib/queries'
 import { useUpdatePublish } from '@/lib/mutations'
 import type { Publish, PublishSourceInput } from '@/lib/api'
 
 export function UpdatePublishAction({ publish }: { publish: Publish }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const snapshots = useSnapshots()
   const mut = useUpdatePublish()
+  if (!canWrite) return null
 
   // Initialise one row per existing source, pre-selected to its current name.
   const initial: PublishSourceInput[] =

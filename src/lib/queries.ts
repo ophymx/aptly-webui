@@ -20,6 +20,20 @@ export function useWhoami() {
   })
 }
 
+/**
+ * Returns true when the current user may perform mutations. Backed by the
+ * proxy-provided `role` field on /api/whoami. Defaults to true when role is
+ * absent so deployments without role mapping keep their write controls.
+ *
+ * Note: this gates UI visibility only. The actual write permission is
+ * enforced by the reverse proxy (see README for the nginx config).
+ */
+export function useCanWrite(): boolean {
+  const { data } = useWhoami()
+  if (data?.role === undefined) return true
+  return data.role === 'writer'
+}
+
 export function useRepos() {
   return useQuery({
     queryKey: ['repos'],

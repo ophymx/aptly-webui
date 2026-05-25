@@ -11,16 +11,19 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useUploadAndAddToRepo } from '@/lib/mutations'
+import { useCanWrite } from '@/lib/queries'
 import { Mono } from '@/components/data/Mono'
 import { cn } from '@/lib/utils'
 
 export function UploadAndAddAction({ repoName }: { repoName: string }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
   const [forceReplace, setForceReplace] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const mut = useUploadAndAddToRepo()
+  if (!canWrite) return null
 
   function setFromList(list: FileList | null) {
     if (!list) return

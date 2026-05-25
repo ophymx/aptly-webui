@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { ConfirmDelete } from '@/components/ui/confirm-delete'
 import { Button } from '@/components/ui/button'
 import { useDropPublish } from '@/lib/mutations'
+import { useCanWrite } from '@/lib/queries'
 import type { Publish } from '@/lib/api'
 
 export function DropPublishAction({ publish }: { publish: Publish }) {
+  const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
   const [force, setForce] = useState(false)
   const mut = useDropPublish()
+  if (!canWrite) return null
 
   const label = `${publish.Prefix || '.'}/${publish.Distribution ?? ''}`
 
