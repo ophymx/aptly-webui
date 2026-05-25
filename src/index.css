@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm-ink dark palette. HSL triplets — used as `hsl(var(--x))`. */
+    --bg: 30 12% 6%;
+    --bg-elev: 28 10% 9%;
+    --bg-elev-2: 28 9% 12%;
+
+    --fg: 36 30% 90%;
+    --fg-muted: 30 10% 62%;
+    --fg-subtle: 28 6% 38%;
+
+    --border: 30 8% 16%;
+    --border-strong: 30 8% 24%;
+
+    --accent: 36 78% 56%;
+    --accent-soft: 36 35% 28%;
+
+    --ok: 158 35% 50%;
+    --warn: 30 80% 60%;
+    --err: 4 60% 58%;
+
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on,
+      'kern' on;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: hsl(var(--bg));
+    color: hsl(var(--fg));
+    background-image:
+      radial-gradient(
+        circle at 18% 0%,
+        hsl(36 40% 14% / 0.55),
+        transparent 60%
+      ),
+      radial-gradient(
+        circle at 90% 100%,
+        hsl(20 30% 10% / 0.7),
+        transparent 50%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        hsl(0 0% 100% / 0.012) 0px,
+        hsl(0 0% 100% / 0.012) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--accent) / 0.35);
+    color: hsl(var(--fg));
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-strong));
+    border-radius: 0;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--fg-subtle));
+  }
+
+  /* Headings */
+  h1,
+  h2,
+  h3 {
+    font-family: 'Newsreader', Georgia, serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer components {
+  /* The "kicker" — small caps tracked label used above section titles */
+  .kicker {
+    @apply font-mono uppercase text-kicker text-paper-muted;
+  }
+
+  /* Sharp horizontal rule */
+  .rule {
+    @apply h-px w-full bg-rule;
+  }
+
+  /* A short rule, used as a visual marker under section titles */
+  .rule-short {
+    @apply h-px w-10 bg-amber;
+  }
+
+  /* Field key — used in key/value pairs */
+  .field-key {
+    @apply font-mono uppercase text-[10.5px] tracking-[0.18em] text-paper-subtle;
+  }
+
+  /* Field value — monospaced identifier-ish */
+  .field-val {
+    @apply font-mono text-[13px] text-paper;
+  }
+
+  /* Decorative serif "drop" number used on overview */
+  .drop {
+    @apply font-display text-[80px] leading-none tracking-[-0.04em] text-paper;
+    font-variant-numeric: tabular-nums oldstyle-nums;
+  }
+}
