@@ -8,6 +8,8 @@ import { EmptyState } from '@/components/data/EmptyState'
 import { ErrorState } from '@/components/data/ErrorState'
 import { Badge } from '@/components/ui/badge'
 import { Mono } from '@/components/data/Mono'
+import { UpdatePublishAction } from '@/components/actions/UpdatePublishAction'
+import { DropPublishAction } from '@/components/actions/DropPublishAction'
 
 export function PublishList() {
   const { data, isLoading, error } = usePublishList()
@@ -123,6 +125,11 @@ export function PublishList() {
                   </ul>
                 </div>
               )}
+
+              <div className="mt-5 pt-4 border-t border-rule flex items-center gap-3">
+                <UpdatePublishAction publish={p} />
+                <DropPublishAction publish={p} />
+              </div>
             </li>
           ))}
         </ul>

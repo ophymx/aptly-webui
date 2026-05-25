@@ -7,6 +7,8 @@ import { ErrorState } from '@/components/data/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PackageList } from './_packages-shared'
 import { fmtDate, fmtRelative } from '@/lib/format'
+import { PublishSnapshotAction } from '@/components/actions/PublishSnapshotAction'
+import { DeleteSnapshotAction } from '@/components/actions/DeleteSnapshotAction'
 
 export function SnapshotDetail() {
   const { name } = useParams<{ name: string }>()
@@ -32,6 +34,14 @@ export function SnapshotDetail() {
         }
         title={s?.Name ?? name ?? '—'}
         lede={s?.Description}
+        actions={
+          name && (
+            <>
+              <PublishSnapshotAction snapshotName={name} />
+              <DeleteSnapshotAction name={name} />
+            </>
+          )
+        }
       />
 
       {snap.isLoading ? (

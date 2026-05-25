@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { PackageList } from './_packages-shared'
 import { fmtDate, fmtRelative } from '@/lib/format'
+import { UpdateMirrorAction } from '@/components/actions/UpdateMirrorAction'
+import { CreateSnapshotAction } from '@/components/actions/CreateSnapshotAction'
 
 export function MirrorDetail() {
   const { name } = useParams<{ name: string }>()
@@ -33,6 +35,14 @@ export function MirrorDetail() {
         }
         title={m?.Name ?? name ?? '—'}
         lede={m?.ArchiveURL}
+        actions={
+          name && (
+            <>
+              <UpdateMirrorAction mirrorName={name} />
+              <CreateSnapshotAction source="mirror" sourceName={name} />
+            </>
+          )
+        }
       />
 
       {mirror.isLoading ? (

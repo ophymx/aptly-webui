@@ -6,6 +6,8 @@ import { KeyValueList } from '@/components/data/KeyValue'
 import { ErrorState } from '@/components/data/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PackageList } from './_packages-shared'
+import { UploadAndAddAction } from '@/components/actions/UploadAndAddAction'
+import { CreateSnapshotAction } from '@/components/actions/CreateSnapshotAction'
 
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>()
@@ -29,6 +31,14 @@ export function RepoDetail() {
         }
         title={repo.data?.Name ?? name ?? '—'}
         lede={repo.data?.Comment || undefined}
+        actions={
+          name && (
+            <>
+              <UploadAndAddAction repoName={name} />
+              <CreateSnapshotAction source="repo" sourceName={name} />
+            </>
+          )
+        }
       />
 
       {repo.isLoading ? (

@@ -1,5 +1,7 @@
 import { Outlet } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { TopNav } from './TopNav'
+import { TaskWatcher } from '@/components/tasks/TaskWatcher'
 
 export function Shell() {
   return (
@@ -11,6 +13,21 @@ export function Shell() {
         </div>
       </main>
       <Footer />
+      <TaskWatcher />
+      <Toaster
+        theme="dark"
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: 'hsl(28 10% 9%)',
+            border: '1px solid hsl(30 8% 24%)',
+            color: 'hsl(36 30% 90%)',
+            borderRadius: 0,
+            fontFamily:
+              '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
+          },
+        }}
+      />
     </div>
   )
 }

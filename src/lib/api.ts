@@ -16,8 +16,13 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  // Auto-attach JSON content-type when sending a string body (not multipart).
+  if (init?.body && typeof init.body === 'string') {
+    headers['Content-Type'] = 'application/json'
+  }
   const res = await fetch(`${BASE}${path}`, {
-    headers: { Accept: 'application/json' },
+    headers: { ...headers, ...(init?.headers as Record<string, string>) },
     ...init,
   })
   const text = await res.text()
@@ -36,6 +41,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(msg, res.status, body)
   }
   return body as T
+}
+
+function qs(params: Record<string, string | number | boolean | undefined>): string {
+  const parts: string[] = []
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === false) continue
+    parts.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+  }
+  return parts.length ? `?${parts.join('&')}` : ''
 }
 
 // ---------- Resource types ----------
@@ -136,6 +150,70 @@ export interface Whoami {
   user?: string
 }
 
+// Aptly task states: 0=INIT, 1=RUNNING, 2=SUCCEEDED, 3=FAILED.
+export enum TaskState {
+  Init = 0,
+  Running = 1,
+  Succeeded = 2,
+  Failed = 3,
+}
+
+export interface Task {
+  ID: number
+  Name?: string
+  State: TaskState
+  ProcessID?: number
+  // Aptly may include these on detail responses.
+  AddedAt?: string
+  StartedAt?: string
+  FinishedAt?: string
+}
+
+// ---------- Write request bodies ----------
+
+export interface SnapshotCreateBody {
+  Name: string
+  Description?: string
+}
+
+export interface PublishSourceInput {
+  Name: string
+  Component?: string
+}
+
+export interface PublishCreateBody {
+  SourceKind: 'local' | 'snapshot'
+  Sources: PublishSourceInput[]
+  Distribution?: string
+  Label?: string
+  Origin?: string
+  Architectures?: string[]
+  ForceOverwrite?: boolean
+  Signing?: SigningOptions
+  AcquireByHash?: boolean
+  NotAutomatic?: string
+  ButAutomaticUpgrades?: string
+  MultiDist?: boolean
+}
+
+export interface PublishUpdateBody {
+  Snapshots?: PublishSourceInput[]
+  ForceOverwrite?: boolean
+  Signing?: SigningOptions
+  AcquireByHash?: boolean
+  MultiDist?: boolean
+}
+
+export interface SigningOptions {
+  Skip?: boolean
+  Batch?: boolean
+  GpgKey?: string
+  Keyring?: string
+  SecretKeyring?: string
+  Passphrase?: string
+  PassphraseFile?: string
+}
+
 // ---------- Endpoints ----------
 
 export const api = {
@@ -169,6 +247,99 @@ export const api = {
     request<string[]>(`/packages?q=${encodeURIComponent(q)}`),
   packageByKey: (key: string) =>
     request<PackageDetail>(`/packages/${encodeURIComponent(key)}`),
+
+  // ---------- Tasks ----------
+  tasks: () => request<Task[]>('/tasks'),
+  task: (id: number) => request<Task>(`/tasks/${id}`),
+  taskOutput: (id: number) => request<string>(`/tasks/${id}/output`),
+  tasksClear: () => request<unknown>('/tasks-clear', { method: 'POST' }),
+  taskDelete: (id: number) =>
+    request<unknown>(`/tasks/${id}`, { method: 'DELETE' }),
+
+  // ---------- Mutations (release workflow) ----------
+  // All mutations use _async=true and return a Task immediately.
+
+  mirrorUpdate: (
+    name: string,
+    opts: { IgnoreSignatures?: boolean; SkipExistingPackages?: boolean } = {},
+  ) =>
+    request<Task>(
+      `/mirrors/${encodeURIComponent(name)}${qs({ _async: true })}`,
+      { method: 'PUT', body: JSON.stringify(opts) },
+    ),
+
+  snapshotCreateFromMirror: (mirrorName: string, body: SnapshotCreateBody) =>
+    request<Task>(
+      `/mirrors/${encodeURIComponent(mirrorName)}/snapshots${qs({ _async: true })}`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  snapshotCreateFromRepo: (repoName: string, body: SnapshotCreateBody) =>
+    request<Task>(
+      `/repos/${encodeURIComponent(repoName)}/snapshots${qs({ _async: true })}`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  snapshotDelete: (name: string, force = false) =>
+    request<Task>(
+      `/snapshots/${encodeURIComponent(name)}${qs({ _async: true, force })}`,
+      { method: 'DELETE' },
+    ),
+
+  publishCreate: (prefix: string, body: PublishCreateBody) =>
+    request<Task>(
+      `/publish/${encodeURIComponent(prefix || '.')}${qs({ _async: true })}`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  publishUpdate: (
+    prefix: string,
+    distribution: string,
+    body: PublishUpdateBody,
+  ) =>
+    request<Task>(
+      `/publish/${encodeURIComponent(prefix || '.')}/${encodeURIComponent(
+        distribution,
+      )}${qs({ _async: true })}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+
+  publishDrop: (prefix: string, distribution: string, force = false) =>
+    request<Task>(
+      `/publish/${encodeURIComponent(prefix || '.')}/${encodeURIComponent(
+        distribution,
+      )}${qs({ _async: true, force })}`,
+      { method: 'DELETE' },
+    ),
+
+  // Upload .deb files to a staging directory. Multipart, no JSON.
+  filesUpload: async (dir: string, files: File[]) => {
+    const fd = new FormData()
+    for (const f of files) fd.append('file', f, f.name)
+    return request<string[]>(
+      `/files/${encodeURIComponent(dir)}`,
+      { method: 'POST', body: fd },
+    )
+  },
+
+  // Move uploaded files from a staging dir into a local repo.
+  repoAddFromFiles: (
+    repo: string,
+    dir: string,
+    opts: { noRemove?: boolean; forceReplace?: boolean } = {},
+  ) =>
+    request<Task>(
+      `/repos/${encodeURIComponent(repo)}/file/${encodeURIComponent(dir)}${qs({
+        _async: true,
+        noRemove: opts.noRemove,
+        forceReplace: opts.forceReplace,
+      })}`,
+      { method: 'POST' },
+    ),
+
+  filesListDirs: () => request<string[]>('/files'),
+  filesDeleteDir: (dir: string) =>
+    request<unknown>(`/files/${encodeURIComponent(dir)}`, { method: 'DELETE' }),
 }
 
 /**

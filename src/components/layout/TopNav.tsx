@@ -2,6 +2,7 @@ import { NavLink, Link } from 'react-router-dom'
 import { useVersion, useWhoami } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { StatusDot } from '@/components/data/StatusDot'
+import { TaskDrawerTrigger } from '@/components/tasks/TaskDrawer'
 
 const sections = [
   { to: '/', label: 'Overview', end: true },
@@ -36,7 +37,8 @@ export function TopNav() {
             )}
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
+            <TaskDrawerTrigger />
             <ConnectionPill ok={!version.isError} />
             {whoami.data?.user && (
               <span className="font-mono text-[12px] text-paper-muted">
