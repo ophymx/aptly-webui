@@ -1,12 +1,21 @@
 # aptly-webui
 
-A read-only web UI for browsing an [aptly](https://www.aptly.info/) instance:
-repositories, mirrors, snapshots, publications, and packages.
+A web UI for an [aptly](https://www.aptly.info/) instance: browse
+repositories, mirrors, snapshots, publications, and packages, plus a
+guarded set of mutations (upload+add, create/delete snapshots, update
+mirrors, publish/update/drop, …) gated on a proxy-provided role. Readers
+get the catalog; writers get the action buttons.
 
 It is a static SPA. It makes requests to `/api` on the same origin and expects
 that path to be reverse-proxied to the aptly daemon. Aptly's HTTP API has no
 authentication or CORS, so this UI is intended to live behind a proxy that
 handles both.
+
+> **Unaffiliated.** This project is a third-party client for aptly's REST
+> API. It is not developed by, endorsed by, or otherwise associated with
+> the [aptly](https://www.aptly.info/) project or its maintainers. "aptly"
+> is the name of that upstream project; it is used here only to identify
+> the API this UI targets.
 
 ## Stack
 
@@ -170,8 +179,10 @@ server {
 | Publications  | `/publish`                              | Currently-published distributions.                                      |
 | Packages      | `/packages`, `/packages/:key`           | aptly-syntax search; full control fields, hashes, relations on detail.  |
 
-All views are **read-only** by design. Mutations (create/update/delete) live
-on the [aptly CLI](https://www.aptly.info/doc/aptly/) for now.
+Write actions (upload+add, create/delete snapshots, update mirrors,
+publish/update/drop, …) appear when the proxy reports `role: "writer"`
+via `/api/whoami`. The UI's check is UX only — see the nginx example
+above for the `limit_except` block that enforces the boundary server-side.
 
 ## Aesthetic notes
 

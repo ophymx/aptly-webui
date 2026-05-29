@@ -12,7 +12,9 @@ priority: optional
 maintainer: Jeffrey T. Peckham <abic@ophymx.com>
 license: MIT
 description: |
-  Read-only web UI for browsing aptly Debian repositories.
+  Web UI for aptly Debian repositories — browse repos, mirrors, snapshots,
+  publications, and packages, with role-gated write actions for the usual
+  publish/snapshot/upload workflow.
   Pure static SPA — expects an nginx (or similar) reverse proxy in front
   that terminates TLS, handles auth, and forwards /api/ to the aptly daemon.
   See /usr/share/doc/aptly-webui/examples/nginx.conf for a starting config.
