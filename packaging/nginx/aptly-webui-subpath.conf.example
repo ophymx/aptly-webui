@@ -1,0 +1,91 @@
+# Example nginx site for mounting aptly-webui under a subpath
+# (e.g. https://host/aptly/) on a vhost that serves other things too.
+#
+# The same .deb works at any mount point — the only build artifact that
+# cares about the URL prefix is <base href> in index.html, and we rewrite
+# that here at the proxy layer.
+#
+# Requires the ngx_http_sub_module nginx module. Most distros ship it
+# (Debian: nginx-full or nginx-extras; nginx-light omits it). Check with:
+#
+#   nginx -V 2>&1 | tr ' ' '\n' | grep sub_module
+#
+# This file shares the same oauth2-proxy + group → role wiring as the
+# root-mount example. Same map block, same auth_request, same /oauth2/
+# callback — only the SPA + API location blocks change. See
+# aptly-webui.conf.example for the inline comments explaining each piece.
+
+map $authed_groups $aptly_role {
+  "~\baptly-writers\b"   "writer";
+  default                "reader";
+}
+
+server {
+  listen 443 ssl http2;
+  server_name host.example.internal;
+
+  # ssl_certificate     /etc/letsencrypt/live/<host>/fullchain.pem;
+  # ssl_certificate_key /etc/letsencrypt/live/<host>/privkey.pem;
+
+  auth_request /oauth2/auth;
+  error_page 401 = /oauth2/sign_in;
+
+  auth_request_set $authed_user   $upstream_http_x_auth_request_user;
+  auth_request_set $authed_email  $upstream_http_x_auth_request_email;
+  auth_request_set $authed_groups $upstream_http_x_auth_request_groups;
+
+  # --- SPA mounted at /aptly/ ---
+  #
+  # alias (not root) so /usr/share/aptly-webui/index.html serves at
+  # /aptly/index.html. try_files falls back to the rewritten index for
+  # any unknown client-side route.
+  location /aptly/ {
+    alias /usr/share/aptly-webui/;
+    index index.html;
+    try_files $uri /aptly/index.html;
+
+    # Rewrite the single <base href> in index.html so all relative URLs
+    # in the SPA (assets, router, fetch) resolve against /aptly/. Scope
+    # the sub_filter to index.html alone — never touch the hashed JS/CSS.
+    location = /aptly/index.html {
+      sub_filter '<base href="/" />' '<base href="/aptly/" />';
+      sub_filter_once on;
+      sub_filter_types text/html;
+      expires -1;
+    }
+  }
+
+  # Whoami must live under the same prefix the SPA fetches from.
+  location = /aptly/api/whoami {
+    default_type application/json;
+    return 200 '{"user":"$authed_user","role":"$aptly_role"}';
+  }
+
+  # Strip the /aptly/api/ prefix back to /api/ before forwarding to the
+  # aptly daemon (which doesn't know or care about the SPA's mount).
+  location /aptly/api/ {
+    limit_except GET HEAD {
+      if ($aptly_role != "writer") {
+        return 403;
+      }
+    }
+
+    rewrite ^/aptly/api/(.*) /api/$1 break;
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-User $authed_user;
+    # proxy_set_header Authorization "Bearer xxxxxxxxxxxxxxxxxxxx";
+
+    client_max_body_size 256m;
+    proxy_request_buffering off;
+  }
+
+  # oauth2-proxy callback (kept at /oauth2/ regardless of SPA mount).
+  location /oauth2/ {
+    proxy_pass http://127.0.0.1:4180;
+    proxy_set_header Host             $host;
+    proxy_set_header X-Real-IP        $remote_addr;
+    proxy_set_header X-Forwarded-Proto https;
+  }
+}

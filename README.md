@@ -30,21 +30,33 @@ handles both.
 ```sh
 npm install
 cp .env.example .env.local
-# edit .env.local — set APTLY_API and (optionally) APTLY_TOKEN
 npm run dev
 ```
 
-The Vite dev server proxies `/api/*` to `APTLY_API`. If `APTLY_TOKEN` is set,
-the proxy injects `Authorization: Bearer ${APTLY_TOKEN}` on every forwarded
-request — the token stays on the dev machine and never reaches the browser.
-`.env.local` is gitignored.
+You need an aptly API to talk to. Two easy paths:
 
-If you're running a local aptly daemon instead:
+**No aptly handy?** Run one locally — aptly ships an HTTP API mode:
 
 ```sh
 aptly api serve -listen=:8080
-# then in .env.local: APTLY_API=http://localhost:8080 (no token needed)
+# .env.local:
+#   APTLY_API=http://localhost:8080
+# (no APTLY_TOKEN needed — local aptly has no auth)
 ```
+
+**Already have a remote aptly?** Point at it and (if it's behind a bearer
+token) drop the token into `.env.local`:
+
+```
+APTLY_API=https://aptly.example.internal
+APTLY_TOKEN=...                # optional
+APTLY_INSECURE=1               # optional — skip TLS verify (private CA)
+```
+
+The Vite dev server proxies `/api/*` to `APTLY_API`. If `APTLY_TOKEN` is
+set, the proxy injects `Authorization: Bearer ${APTLY_TOKEN}` on every
+forwarded request — the token stays on the dev machine and never reaches
+the browser. `.env.local` is gitignored.
 
 ## Build
 
@@ -64,10 +76,14 @@ make deb   # -> dist-pkg/aptly-webui_<version>_all.deb
 ```
 
 Requires [`nfpm`](https://nfpm.goreleaser.com/). The package installs the
-SPA to `/usr/share/aptly-webui/` and ships an example nginx site at
-`/usr/share/doc/aptly-webui/examples/nginx.conf`. It does **not** drop
-anything into `/etc/nginx/`, so installing or upgrading never touches a
-live config — wire it up yourself (or template it from Ansible).
+SPA to `/usr/share/aptly-webui/` and ships two example nginx sites:
+
+- `/usr/share/doc/aptly-webui/examples/nginx.conf` — root mount (vhost dedicated to aptly-webui)
+- `/usr/share/doc/aptly-webui/examples/nginx-subpath.conf` — subpath mount (e.g. `https://host/aptly/`)
+
+It does **not** drop anything into `/etc/nginx/`, so installing or
+upgrading never touches a live config — wire it up yourself (or template
+it from Ansible).
 
 ## Deploy behind nginx
 
@@ -167,6 +183,32 @@ server {
   `X-Forwarded-Groups`), swap the `auth_request_set` line accordingly.
 - If you don't run an auth proxy at all, omit the `auth_request` lines
   and the `/api/whoami` block. The UI defaults to writer in that case.
+
+### Subpath mount
+
+The bundle uses relative asset paths and reads its mount point from a
+single `<base href="/" />` line in `index.html`. To host it under a
+subpath (e.g. `https://host/aptly/`) without rebuilding, have nginx
+rewrite that one line:
+
+```nginx
+location = /aptly/index.html {
+  sub_filter '<base href="/" />' '<base href="/aptly/" />';
+  sub_filter_once on;
+  sub_filter_types text/html;
+  expires -1;
+}
+```
+
+The router basename and API base URL are derived from `document.baseURI`
+at runtime, so they follow the rewrite automatically. A complete
+worked example is in
+[`packaging/nginx/aptly-webui-subpath.conf.example`](packaging/nginx/aptly-webui-subpath.conf.example)
+(also installed at `/usr/share/doc/aptly-webui/examples/nginx-subpath.conf`).
+
+Requires the `ngx_http_sub_module` nginx module — present in Debian's
+`nginx-full`/`nginx-extras`, absent from `nginx-light`. Verify with
+`nginx -V 2>&1 | tr ' ' '\n' | grep sub_module`.
 
 ## What's covered
 

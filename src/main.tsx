@@ -14,10 +14,15 @@ const queryClient = new QueryClient({
   },
 })
 
+// Derive the router basename from the document's <base href> so the SPA
+// works at any mount point (`/`, `/aptly/`, …) without a rebuild.
+const basename =
+  new URL(document.baseURI).pathname.replace(/\/$/, '') || '/'
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <App />
       </BrowserRouter>
     </QueryClientProvider>

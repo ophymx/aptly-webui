@@ -2,7 +2,14 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      All other URLs on this page (assets, fetch(), router) resolve against
+      this <base href>. To mount the SPA under a subpath, have nginx rewrite
+      this single line: see README "Subpath mount" for the one-line
+      sub_filter snippet.
+    -->
+    <base href="/" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0F0E0C" />

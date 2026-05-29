@@ -9,7 +9,8 @@ platform: linux
 version: ${VERSION}
 section: web
 priority: optional
-maintainer: Jeffrey T. Peckham <abic@ophymx.com>
+maintainer: Ophymx Ops <ops@ophymx.com>
+homepage: https://github.com/ophymx/aptly-webui
 license: MIT
 description: |
   Web UI for aptly Debian repositories — browse repos, mirrors, snapshots,
@@ -31,6 +32,10 @@ contents:
     type: tree
   - src: ./nginx/aptly-webui.conf.example
     dst: /usr/share/doc/aptly-webui/examples/nginx.conf
+    file_info:
+      mode: 0644
+  - src: ./nginx/aptly-webui-subpath.conf.example
+    dst: /usr/share/doc/aptly-webui/examples/nginx-subpath.conf
     file_info:
       mode: 0644
   - src: ../README.md

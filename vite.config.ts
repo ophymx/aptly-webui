@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => {
   const secure = (env.APTLY_INSECURE ?? process.env.APTLY_INSECURE) !== '1'
 
   return {
+    // Relative asset paths so the built bundle can be mounted at any URL
+    // prefix without rebuilding. The runtime <base href> in index.html is
+    // what determines the actual mount; see README "Subpath mount".
+    base: './',
     plugins: [react()],
     resolve: {
       alias: {

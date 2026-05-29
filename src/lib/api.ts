@@ -1,9 +1,10 @@
 /**
- * Thin client for aptly's REST API. The SPA expects requests to /api to be
- * reverse-proxied to the aptly daemon (see README for nginx example).
+ * Thin client for aptly's REST API. Requests go to `api/...` relative to
+ * the document's <base href>, so the SPA works at any mount point — the
+ * proxy hop to the aptly daemon lives in nginx (see README example).
  */
 
-const BASE = '/api'
+const BASE = 'api'
 
 export class ApiError extends Error {
   status: number
