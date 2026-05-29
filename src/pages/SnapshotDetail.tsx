@@ -7,7 +7,7 @@ import { ErrorState } from '@/components/data/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PackageList } from './_packages-shared'
 import { fmtDate, fmtRelative } from '@/lib/format'
-import { PublishSnapshotAction } from '@/components/actions/PublishSnapshotAction'
+import { PublishAction } from '@/components/actions/PublishAction'
 import { DeleteSnapshotAction } from '@/components/actions/DeleteSnapshotAction'
 
 export function SnapshotDetail() {
@@ -37,7 +37,7 @@ export function SnapshotDetail() {
         actions={
           name && (
             <>
-              <PublishSnapshotAction snapshotName={name} />
+              <PublishAction sourceKind="snapshot" sourceName={name} />
               <DeleteSnapshotAction name={name} />
             </>
           )

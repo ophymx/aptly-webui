@@ -13,10 +13,12 @@ import { Input } from '@/components/ui/input'
 import { useCreatePublish } from '@/lib/mutations'
 import { useCanWrite } from '@/lib/queries'
 
-export function PublishSnapshotAction({
-  snapshotName,
+export function PublishAction({
+  sourceKind,
+  sourceName,
 }: {
-  snapshotName: string
+  sourceKind: 'snapshot' | 'local'
+  sourceName: string
 }) {
   const canWrite = useCanWrite()
   const [open, setOpen] = useState(false)
@@ -28,13 +30,15 @@ export function PublishSnapshotAction({
   const mut = useCreatePublish()
   if (!canWrite) return null
 
+  const sourceLabel = sourceKind === 'snapshot' ? 'snapshot' : 'repository'
+
   function submit() {
     mut.mutate(
       {
         prefix: prefix || '.',
         body: {
-          SourceKind: 'snapshot',
-          Sources: [{ Name: snapshotName, Component: component || 'main' }],
+          SourceKind: sourceKind,
+          Sources: [{ Name: sourceName, Component: component || 'main' }],
           Distribution: distribution || undefined,
           Signing: skipSigning
             ? { Skip: true }
@@ -54,9 +58,9 @@ export function PublishSnapshotAction({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader kicker="Publish · new">
-          <DialogTitle>Publish “{snapshotName}”</DialogTitle>
+          <DialogTitle>Publish “{sourceName}”</DialogTitle>
           <DialogDescription>
-            Create a new published distribution backed by this snapshot.
+            Create a new published distribution backed by this {sourceLabel}.
           </DialogDescription>
         </DialogHeader>
 
@@ -74,7 +78,7 @@ export function PublishSnapshotAction({
             <Input
               value={distribution}
               onChange={(e) => setDistribution(e.target.value)}
-              placeholder="auto (from snapshot)"
+              placeholder={`auto (from ${sourceLabel})`}
             />
           </div>
           <div className="col-span-2">

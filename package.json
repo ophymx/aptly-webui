@@ -1,7 +1,7 @@
 {
   "name": "aptly-webui",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Web UI for aptly: browse repositories, mirrors, snapshots, publications, and packages, with role-gated write actions",
   "scripts": {

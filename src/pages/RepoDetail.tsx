@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PackageList } from './_packages-shared'
 import { UploadAndAddAction } from '@/components/actions/UploadAndAddAction'
 import { CreateSnapshotAction } from '@/components/actions/CreateSnapshotAction'
+import { PublishAction } from '@/components/actions/PublishAction'
 
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>()
@@ -36,6 +37,7 @@ export function RepoDetail() {
             <>
               <UploadAndAddAction repoName={name} />
               <CreateSnapshotAction source="repo" sourceName={name} />
+              <PublishAction sourceKind="local" sourceName={name} />
             </>
           )
         }
