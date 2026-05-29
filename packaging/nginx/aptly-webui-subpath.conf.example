@@ -7,13 +7,19 @@
 # extra nginx modules, no HTML mutation.
 #
 # This file shares the same oauth2-proxy + group → role wiring as the
-# root-mount example. Same map block, same auth_request, same /oauth2/
+# root-mount example. Same maps, same auth_request, same /oauth2/
 # callback — only the SPA + API location blocks change. See
 # aptly-webui.conf.example for the inline comments explaining each piece.
 
 map $authed_groups $aptly_role {
   "~\baptly-writers\b"   "writer";
   default                "reader";
+}
+
+map "$aptly_role:$request_method" $aptly_blocked {
+  "~^writer:"             "";
+  "~^reader:(GET|HEAD)$"  "";
+  default                 "1";
 }
 
 server {
@@ -62,13 +68,23 @@ server {
     return 200 '{"user":"$authed_user","role":"$aptly_role","signout_url":"/oauth2/sign_out?rd=/aptly/"}';
   }
 
-  # Strip the /aptly/api/ prefix back to /api/ before forwarding to the
-  # aptly daemon (which doesn't know or care about the SPA's mount).
+  # Strip the /aptly/api/ prefix back to /api/ before forwarding to
+  # the aptly daemon (which doesn't know or care about the SPA's
+  # mount).
+  #
+  # Same content-phase split as /aptly/api/whoami above: the role
+  # check needs $aptly_blocked (derived from $aptly_role), which is
+  # only populated after auth_request fires in the access phase.
+  # try_files bounces into @api so the `if` evaluates in the content
+  # phase against the populated value.
   location /aptly/api/ {
-    limit_except GET HEAD {
-      if ($aptly_role != "writer") {
-        return 403;
-      }
+    try_files _ @api;
+  }
+  location @api {
+    auth_request off;
+
+    if ($aptly_blocked) {
+      return 403;
     }
 
     rewrite ^/aptly/api/(.*) /api/$1 break;
