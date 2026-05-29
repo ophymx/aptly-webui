@@ -37,7 +37,7 @@ function Footer() {
     <footer className="border-t border-rule mt-16">
       <div className="mx-auto max-w-[1240px] px-8 py-6 flex flex-wrap items-center justify-between gap-3 text-paper-subtle">
         <div className="font-mono text-[11px] uppercase tracking-[0.16em]">
-          read-only browser · aptly rest api
+          third-party client · aptly rest api
         </div>
         <div className="font-mono text-[11px] tracking-[0.08em]">
           <a

@@ -42,9 +42,24 @@ server {
   }
 
   # Whoami must live under the same prefix the SPA fetches from.
+  # `signout_url` is auth-provider-specific; the SPA just renders it as
+  # a link. For oauth2-proxy, redirect back to the SPA mount after
+  # sign-out (rd=/aptly/) so the post-signout landing is your SPA, not
+  # the bare site root.
+  #
+  # The two-location split is required because nginx's `return` runs
+  # in the rewrite phase, before auth_request fires in the access
+  # phase — inlining the JSON would substitute empty $authed_user /
+  # $aptly_role. The try_files indirection defers to the content
+  # phase, by which time auth_request_set has populated everything.
+  # See the root-mount example for the longer explanation.
   location = /aptly/api/whoami {
+    try_files _ @whoami;
+  }
+  location @whoami {
+    auth_request off;
     default_type application/json;
-    return 200 '{"user":"$authed_user","role":"$aptly_role"}';
+    return 200 '{"user":"$authed_user","role":"$aptly_role","signout_url":"/oauth2/sign_out?rd=/aptly/"}';
   }
 
   # Strip the /aptly/api/ prefix back to /api/ before forwarding to the

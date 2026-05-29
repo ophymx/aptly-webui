@@ -156,6 +156,13 @@ export interface Whoami {
    * deploy hasn't wired role mapping yet) the UI defaults to writer.
    */
   role?: 'reader' | 'writer' | string
+  /**
+   * Optional URL the proxy wants the SPA to navigate to for sign-out (e.g.
+   * `/oauth2/sign_out?rd=/` for oauth2-proxy, `/api/logout` for Authelia).
+   * The SPA renders a sign-out link when present and hides it when absent,
+   * so this is auth-provider-agnostic — the proxy owns the URL shape.
+   */
+  signout_url?: string
 }
 
 // Aptly task states: 0=INIT, 1=RUNNING, 2=SUCCEEDED, 3=FAILED.

@@ -134,9 +134,23 @@ server {
   }
 
   # Whoami helper used by the UI top-bar and write-control gating.
+  # `signout_url` is optional and auth-provider-specific — the UI just
+  # renders it as a Sign out link. Omit to hide the button.
+  #
+  # The two-location split is intentional: nginx's `return` runs in the
+  # rewrite phase, before `auth_request` fires in the access phase, so
+  # inlining the JSON in /api/whoami would substitute empty
+  # $authed_user / $aptly_role. try_files forces the request into the
+  # content phase; by the time @whoami's `return` evaluates, the
+  # auth_request_set variables are populated. `auth_request off` in the
+  # named location avoids re-firing the auth subrequest.
   location = /api/whoami {
+    try_files _ @whoami;
+  }
+  location @whoami {
+    auth_request off;
     default_type application/json;
-    return 200 '{"user":"$authed_user","role":"$aptly_role"}';
+    return 200 '{"user":"$authed_user","role":"$aptly_role","signout_url":"/oauth2/sign_out?rd=/"}';
   }
 
   # Proxy to aptly daemon. The actual security boundary lives here:
@@ -181,6 +195,11 @@ server {
   so the method-based `limit_except` covers the full mutation surface.
 - If your IdP delivers groups via a different oauth2-proxy header (e.g.
   `X-Forwarded-Groups`), swap the `auth_request_set` line accordingly.
+- `signout_url` is an opaque string the SPA renders as a top-bar Sign
+  out link — the UI doesn't know or care about your auth provider.
+  Common values: `/oauth2/sign_out?rd=/` (oauth2-proxy), `/api/logout`
+  (Authelia), `/_pomerium/sign_out` (Pomerium). Omit the field
+  entirely to hide the button.
 - If you don't run an auth proxy at all, omit the `auth_request` lines
   and the `/api/whoami` block. The UI defaults to writer in that case.
 

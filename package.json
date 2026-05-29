@@ -1,9 +1,9 @@
 {
   "name": "aptly-webui",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
-  "description": "A read-only web UI for browsing aptly Debian repositories",
+  "description": "Web UI for aptly: browse repositories, mirrors, snapshots, publications, and packages, with role-gated write actions",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

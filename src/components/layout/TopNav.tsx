@@ -50,6 +50,14 @@ export function TopNav() {
                 {whoami.data.user}
               </span>
             )}
+            {whoami.data?.signout_url && (
+              <a
+                href={whoami.data.signout_url}
+                className="font-mono uppercase tracking-[0.16em] text-[10px] text-paper-subtle hover:text-paper transition-colors"
+              >
+                sign out
+              </a>
+            )}
           </div>
         </div>
 

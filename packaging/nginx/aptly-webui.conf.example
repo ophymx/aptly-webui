@@ -47,12 +47,34 @@ server {
     try_files $uri /index.html;
   }
 
-  # Whoami helper the UI calls to decide which write controls to render.
-  # The UI's read of `role` is UX only; the real boundary is the
+  # Whoami helper the UI calls to render the user chip, decide which
+  # write controls to render, and (optionally) wire up a Sign out link.
+  # The UI's read of `role` is UX only — the real boundary is the
   # limit_except block below.
+  #
+  # NOTE on the two-location dance: `return` is processed in nginx's
+  # rewrite phase, which runs *before* the access phase where
+  # auth_request fires. Inlining `return 200 '...$authed_user...'` in
+  # /api/whoami directly would substitute empty strings because the
+  # auth subrequest hasn't run yet. The try_files indirection forces
+  # entry into the content phase; by the time @whoami's `return` is
+  # evaluated, auth_request has populated the variables. The named
+  # location disables auth_request to avoid re-firing it on the
+  # internal redirect.
+  #
+  # `signout_url` is a free-form string the SPA renders as a Sign out
+  # link. Omit the field entirely to hide the button. Adjust to your
+  # auth provider:
+  #   oauth2-proxy : /oauth2/sign_out?rd=/
+  #   Authelia     : /api/logout
+  #   Pomerium     : /_pomerium/sign_out
   location = /api/whoami {
+    try_files _ @whoami;
+  }
+  location @whoami {
+    auth_request off;
     default_type application/json;
-    return 200 '{"user":"$authed_user","role":"$aptly_role"}';
+    return 200 '{"user":"$authed_user","role":"$aptly_role","signout_url":"/oauth2/sign_out?rd=/"}';
   }
 
   # Reverse-proxy /api/ to the aptly daemon.
