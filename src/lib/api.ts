@@ -54,6 +54,19 @@ function qs(params: Record<string, string | number | boolean | undefined>): stri
   return parts.length ? `?${parts.join('&')}` : ''
 }
 
+// Aptly's publish URL convention: "{storage}:{prefix}" where slashes
+// in nested prefixes are encoded as "_" and the root prefix is "." —
+// rendered as ":." for the root so RFC 3986 path resolution doesn't
+// normalize the bare "." segment away on the wire. The "{storage}:"
+// piece is omitted when storage is empty (the aptly default), but
+// then ":" still has to be present for the root prefix.
+function encodePublishPrefix(prefix: string, storage = ''): string {
+  const normPrefix = !prefix || prefix === '.' ? '.' : prefix.replace(/\//g, '_')
+  const param =
+    storage || normPrefix === '.' ? `${storage}:${normPrefix}` : normPrefix
+  return encodeURIComponent(param)
+}
+
 // ---------- Resource types ----------
 // Aptly's response shapes are documented but somewhat loose. Fields are kept
 // optional where the docs don't guarantee them, so the UI degrades gracefully.
@@ -301,9 +314,13 @@ export const api = {
       { method: 'DELETE' },
     ),
 
-  publishCreate: (prefix: string, body: PublishCreateBody) =>
+  publishCreate: (
+    prefix: string,
+    body: PublishCreateBody,
+    storage = '',
+  ) =>
     request<Task>(
-      `/publish/${encodeURIComponent(prefix || '.')}${qs({ _async: true })}`,
+      `/publish/${encodePublishPrefix(prefix, storage)}${qs({ _async: true })}`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
@@ -311,17 +328,23 @@ export const api = {
     prefix: string,
     distribution: string,
     body: PublishUpdateBody,
+    storage = '',
   ) =>
     request<Task>(
-      `/publish/${encodeURIComponent(prefix || '.')}/${encodeURIComponent(
+      `/publish/${encodePublishPrefix(prefix, storage)}/${encodeURIComponent(
         distribution,
       )}${qs({ _async: true })}`,
       { method: 'PUT', body: JSON.stringify(body) },
     ),
 
-  publishDrop: (prefix: string, distribution: string, force = false) =>
+  publishDrop: (
+    prefix: string,
+    distribution: string,
+    force = false,
+    storage = '',
+  ) =>
     request<Task>(
-      `/publish/${encodeURIComponent(prefix || '.')}/${encodeURIComponent(
+      `/publish/${encodePublishPrefix(prefix, storage)}/${encodeURIComponent(
         distribution,
       )}${qs({ _async: true, force })}`,
       { method: 'DELETE' },

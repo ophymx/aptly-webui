@@ -121,11 +121,13 @@ export function useUpdatePublish() {
       prefix,
       distribution,
       body,
+      storage,
     }: {
       prefix: string
       distribution: string
       body: PublishUpdateBody
-    }) => api.publishUpdate(prefix, distribution, body),
+      storage?: string
+    }) => api.publishUpdate(prefix, distribution, body, storage),
     onSuccess: (task) => {
       qc.invalidateQueries({ queryKey: ['tasks'] })
       handlers.onSuccess(task)
@@ -142,11 +144,13 @@ export function useDropPublish() {
       prefix,
       distribution,
       force,
+      storage,
     }: {
       prefix: string
       distribution: string
       force?: boolean
-    }) => api.publishDrop(prefix, distribution, force),
+      storage?: string
+    }) => api.publishDrop(prefix, distribution, force, storage),
     onSuccess: (task) => {
       qc.invalidateQueries({ queryKey: ['tasks'] })
       handlers.onSuccess(task)

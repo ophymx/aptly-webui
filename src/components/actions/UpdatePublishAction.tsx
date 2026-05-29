@@ -34,6 +34,7 @@ export function UpdatePublishAction({ publish }: { publish: Publish }) {
       {
         prefix: publish.Prefix ?? '.',
         distribution: publish.Distribution ?? '',
+        storage: publish.Storage,
         body: {
           // Local-repo publishes re-render against the repo's current
           // state; the API rejects a Snapshots field for them.

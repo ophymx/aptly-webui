@@ -19,6 +19,7 @@ export function DropPublishAction({ publish }: { publish: Publish }) {
       {
         prefix: publish.Prefix ?? '.',
         distribution: publish.Distribution ?? '',
+        storage: publish.Storage,
         force,
       },
       { onSuccess: () => setOpen(false) },
