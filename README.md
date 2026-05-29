@@ -186,29 +186,32 @@ server {
 
 ### Subpath mount
 
-The bundle uses relative asset paths and reads its mount point from a
-single `<base href="/" />` line in `index.html`. To host it under a
-subpath (e.g. `https://host/aptly/`) without rebuilding, have nginx
-rewrite that one line:
+The SPA discovers its own mount point at runtime by reading the URL of
+its own JS bundle (`import.meta.url`) and stripping the `/assets/...`
+suffix. To host it under a subpath like `https://host/aptly/`, the only
+nginx changes are an `alias`, a `try_files` fallback, and a path
+rewrite for `/api/`:
 
 ```nginx
-location = /aptly/index.html {
-  sub_filter '<base href="/" />' '<base href="/aptly/" />';
-  sub_filter_once on;
-  sub_filter_types text/html;
-  expires -1;
+location /aptly/ {
+  alias /usr/share/aptly-webui/;
+  index index.html;
+  try_files $uri /aptly/index.html;
+}
+
+location /aptly/api/ {
+  rewrite ^/aptly/api/(.*) /api/$1 break;
+  proxy_pass http://127.0.0.1:8080;
+  # …auth/role headers, limit_except, etc.
 }
 ```
 
-The router basename and API base URL are derived from `document.baseURI`
-at runtime, so they follow the rewrite automatically. A complete
-worked example is in
+No HTML rewriting, no `sub_filter`, no extra nginx modules. The router
+basename and API base URL are both derived from the bundle URL — they
+follow the mount automatically. A full worked example with oauth2-proxy
++ role gating is in
 [`packaging/nginx/aptly-webui-subpath.conf.example`](packaging/nginx/aptly-webui-subpath.conf.example)
-(also installed at `/usr/share/doc/aptly-webui/examples/nginx-subpath.conf`).
-
-Requires the `ngx_http_sub_module` nginx module — present in Debian's
-`nginx-full`/`nginx-extras`, absent from `nginx-light`. Verify with
-`nginx -V 2>&1 | tr ' ' '\n' | grep sub_module`.
+(installed at `/usr/share/doc/aptly-webui/examples/nginx-subpath.conf`).
 
 ## What's covered
 

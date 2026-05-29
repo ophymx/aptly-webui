@@ -1,14 +1,10 @@
 # Example nginx site for mounting aptly-webui under a subpath
 # (e.g. https://host/aptly/) on a vhost that serves other things too.
 #
-# The same .deb works at any mount point — the only build artifact that
-# cares about the URL prefix is <base href> in index.html, and we rewrite
-# that here at the proxy layer.
-#
-# Requires the ngx_http_sub_module nginx module. Most distros ship it
-# (Debian: nginx-full or nginx-extras; nginx-light omits it). Check with:
-#
-#   nginx -V 2>&1 | tr ' ' '\n' | grep sub_module
+# The same .deb works at any mount point — the SPA reads its own bundle
+# URL at runtime to figure out where it lives. The nginx config below is
+# pure static serving + a path rewrite for the API; no sub_filter, no
+# extra nginx modules, no HTML mutation.
 #
 # This file shares the same oauth2-proxy + group → role wiring as the
 # root-mount example. Same map block, same auth_request, same /oauth2/
@@ -37,22 +33,12 @@ server {
   # --- SPA mounted at /aptly/ ---
   #
   # alias (not root) so /usr/share/aptly-webui/index.html serves at
-  # /aptly/index.html. try_files falls back to the rewritten index for
-  # any unknown client-side route.
+  # /aptly/index.html. try_files falls back to that index for any
+  # unknown client-side route (deep links).
   location /aptly/ {
     alias /usr/share/aptly-webui/;
     index index.html;
     try_files $uri /aptly/index.html;
-
-    # Rewrite the single <base href> in index.html so all relative URLs
-    # in the SPA (assets, router, fetch) resolve against /aptly/. Scope
-    # the sub_filter to index.html alone — never touch the hashed JS/CSS.
-    location = /aptly/index.html {
-      sub_filter '<base href="/" />' '<base href="/aptly/" />';
-      sub_filter_once on;
-      sub_filter_types text/html;
-      expires -1;
-    }
   }
 
   # Whoami must live under the same prefix the SPA fetches from.

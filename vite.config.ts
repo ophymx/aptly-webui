@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     // Relative asset paths so the built bundle can be mounted at any URL
-    // prefix without rebuilding. The runtime <base href> in index.html is
-    // what determines the actual mount; see README "Subpath mount".
+    // prefix without rebuilding. The mount point is discovered at runtime
+    // from the bundle's own URL (src/lib/base.ts); see README "Subpath mount".
     base: './',
     plugins: [react()],
     resolve: {

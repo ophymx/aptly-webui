@@ -1,10 +1,11 @@
 /**
- * Thin client for aptly's REST API. Requests go to `api/...` relative to
- * the document's <base href>, so the SPA works at any mount point — the
- * proxy hop to the aptly daemon lives in nginx (see README example).
+ * Thin client for aptly's REST API. The base URL is derived at runtime
+ * from the bundle's own asset URL (see `./base.ts`) so the SPA works at
+ * any mount point. The proxy hop to the aptly daemon lives in nginx
+ * (see README example).
  */
 
-const BASE = 'api'
+import { API_BASE as BASE } from './base'
 
 export class ApiError extends Error {
   status: number
