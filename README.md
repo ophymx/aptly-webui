@@ -48,6 +48,18 @@ npm run typecheck  # tsc, no emit
 `dist/` is a fully static bundle (HTML + JS + CSS). Drop it behind any
 HTTP server.
 
+## Package as .deb
+
+```sh
+make deb   # -> dist-pkg/aptly-webui_<version>_all.deb
+```
+
+Requires [`nfpm`](https://nfpm.goreleaser.com/). The package installs the
+SPA to `/usr/share/aptly-webui/` and ships an example nginx site at
+`/usr/share/doc/aptly-webui/examples/nginx.conf`. It does **not** drop
+anything into `/etc/nginx/`, so installing or upgrading never touches a
+live config — wire it up yourself (or template it from Ansible).
+
 ## Deploy behind nginx
 
 The UI assumes:
@@ -181,3 +193,7 @@ src/
   pages/       one file per route
   index.css    design tokens + base layer
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

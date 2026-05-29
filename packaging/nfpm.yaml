@@ -1,0 +1,41 @@
+# nfpm packaging config. Build with `make deb` from the project root.
+# Docs: https://nfpm.goreleaser.com/configuration/
+#
+# VERSION is injected by the Makefile from package.json so the two stay in sync.
+
+name: aptly-webui
+arch: all
+platform: linux
+version: ${VERSION}
+section: web
+priority: optional
+maintainer: Jeffrey T. Peckham <abic@ophymx.com>
+license: MIT
+description: |
+  Read-only web UI for browsing aptly Debian repositories.
+  Pure static SPA — expects an nginx (or similar) reverse proxy in front
+  that terminates TLS, handles auth, and forwards /api/ to the aptly daemon.
+  See /usr/share/doc/aptly-webui/examples/nginx.conf for a starting config.
+recommends:
+  - nginx
+
+# Paths in `src:` are resolved relative to the nfpm working directory.
+# The Makefile runs nfpm from packaging/, so ../dist/ points at the Vite build.
+contents:
+  # type: tree preserves dist/'s subdirectory structure (assets/ etc.); the
+  # default behaviour flattens, which would break the SPA's asset paths.
+  - src: ../dist
+    dst: /usr/share/aptly-webui
+    type: tree
+  - src: ./nginx/aptly-webui.conf.example
+    dst: /usr/share/doc/aptly-webui/examples/nginx.conf
+    file_info:
+      mode: 0644
+  - src: ../README.md
+    dst: /usr/share/doc/aptly-webui/README.md
+    file_info:
+      mode: 0644
+  - src: ../LICENSE
+    dst: /usr/share/doc/aptly-webui/copyright
+    file_info:
+      mode: 0644
