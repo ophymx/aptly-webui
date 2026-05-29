@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCreatePublish } from '@/lib/mutations'
-import { useCanWrite } from '@/lib/queries'
+import { useCanWrite, useRepo } from '@/lib/queries'
 
 export function PublishAction({
   sourceKind,
@@ -24,22 +24,34 @@ export function PublishAction({
   const [open, setOpen] = useState(false)
   const [prefix, setPrefix] = useState('.')
   const [distribution, setDistribution] = useState('')
-  const [component, setComponent] = useState('main')
+  const [component, setComponent] = useState('')
+  const [architectures, setArchitectures] = useState('')
   const [skipSigning, setSkipSigning] = useState(true)
   const [gpgKey, setGpgKey] = useState('')
   const mut = useCreatePublish()
+  // Pulls from the query cache when RepoDetail already loaded it.
+  const repo = useRepo(sourceKind === 'local' ? sourceName : undefined)
   if (!canWrite) return null
 
   const sourceLabel = sourceKind === 'snapshot' ? 'snapshot' : 'repository'
+  const defaultDistribution = repo.data?.DefaultDistribution || ''
+  const defaultComponent = repo.data?.DefaultComponent || 'main'
 
   function submit() {
+    const archList = architectures
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
     mut.mutate(
       {
         prefix: prefix || '.',
         body: {
           SourceKind: sourceKind,
-          Sources: [{ Name: sourceName, Component: component || 'main' }],
-          Distribution: distribution || undefined,
+          Sources: [
+            { Name: sourceName, Component: component || defaultComponent },
+          ],
+          Distribution: distribution || defaultDistribution || undefined,
+          Architectures: archList.length ? archList : undefined,
           Signing: skipSigning
             ? { Skip: true }
             : gpgKey
@@ -78,16 +90,31 @@ export function PublishAction({
             <Input
               value={distribution}
               onChange={(e) => setDistribution(e.target.value)}
-              placeholder={`auto (from ${sourceLabel})`}
+              placeholder={
+                defaultDistribution || `required (e.g. stable, jammy)`
+              }
             />
           </div>
-          <div className="col-span-2">
+          <div>
             <label className="kicker block mb-2">Component</label>
             <Input
               value={component}
               onChange={(e) => setComponent(e.target.value)}
-              placeholder="main"
+              placeholder={defaultComponent}
             />
+          </div>
+          <div className="col-span-2">
+            <label className="kicker block mb-2">Architectures</label>
+            <Input
+              value={architectures}
+              onChange={(e) => setArchitectures(e.target.value)}
+              placeholder="amd64, arm64, all"
+            />
+            <p className="kicker mt-2">
+              {sourceKind === 'local'
+                ? 'comma-separated; required for local repos'
+                : 'comma-separated; aptly infers from the snapshot if blank'}
+            </p>
           </div>
         </div>
 
