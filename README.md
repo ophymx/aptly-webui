@@ -17,6 +17,14 @@ handles both.
 > is the name of that upstream project; it is used here only to identify
 > the API this UI targets.
 
+<p align="center">
+  <img src="screenshots/overview-page.png" alt="Overview dashboard" width="860">
+</p>
+<p align="center">
+  <img src="screenshots/repo-page.png" alt="Repository detail page" width="430">
+  <img src="screenshots/publication-page.png" alt="Publications page" width="430">
+</p>
+
 ## Stack
 
 - Vite + React 18 + TypeScript
@@ -138,7 +146,7 @@ server {
   auth_request_set $authed_groups $upstream_http_x_auth_request_groups;
 
   # SPA
-  root /var/www/aptly-webui;
+  root /usr/share/aptly-webui;
   index index.html;
   location / {
     try_files $uri /index.html;

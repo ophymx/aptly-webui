@@ -4,6 +4,25 @@
   "version": "0.1.4",
   "type": "module",
   "description": "Web UI for aptly: browse repositories, mirrors, snapshots, publications, and packages, with role-gated write actions",
+  "license": "MIT",
+  "author": "Ophymx Ops <ops@ophymx.com>",
+  "homepage": "https://github.com/ophymx/aptly-webui",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ophymx/aptly-webui.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ophymx/aptly-webui/issues"
+  },
+  "keywords": [
+    "aptly",
+    "debian",
+    "apt",
+    "repository",
+    "package-management",
+    "spa",
+    "react"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

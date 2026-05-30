@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install nfpm
+        run: |
+          NFPM_VERSION=2.46.3
+          curl -fsSL \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_amd64.deb" \
+            -o /tmp/nfpm.deb
+          sudo dpkg -i /tmp/nfpm.deb
+
+      # `make deb` runs `npm ci && npm run build && nfpm pkg`, so
+      # tsc + vite build + .deb packaging are all exercised in one go.
+      - name: Build and package
+        run: make deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aptly-webui-deb
+          path: dist-pkg/*.deb
+          if-no-files-found: error
