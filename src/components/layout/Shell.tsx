@@ -41,12 +41,12 @@ function Footer() {
         </div>
         <div className="font-mono text-[11px] tracking-[0.08em]">
           <a
-            href="https://www.aptly.info/doc/api/"
+            href="https://www.aptly.info/doc/api/swagger/"
             target="_blank"
             rel="noreferrer"
             className="hover:text-paper-muted transition-colors"
           >
-            aptly.info/doc/api ↗
+            aptly.info/doc/api/swagger ↗
           </a>
         </div>
       </div>

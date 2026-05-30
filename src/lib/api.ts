@@ -1,8 +1,14 @@
 /**
- * Thin client for aptly's REST API. The base URL is derived at runtime
- * from the bundle's own asset URL (see `./base.ts`) so the SPA works at
- * any mount point. The proxy hop to the aptly daemon lives in nginx
- * (see README example).
+ * Thin client for aptly's REST API, modelled directly on the upstream
+ * swagger spec (https://www.aptly.info/doc/api/swagger/). Endpoint paths,
+ * query params, and request-body field names (PascalCase per the spec's
+ * `api.*Params` schemas) are kept in lock-step with the swagger. The one
+ * exception is `/whoami`, which is a custom proxy-injected endpoint that
+ * sits in front of aptly and is not part of the upstream API.
+ *
+ * The base URL is derived at runtime from the bundle's own asset URL
+ * (see `./base.ts`) so the SPA works at any mount point. The proxy hop
+ * to the aptly daemon lives in nginx (see README example).
  */
 
 import { API_BASE as BASE } from './base'
