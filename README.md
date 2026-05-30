@@ -94,9 +94,10 @@ The UI assumes:
 3. `/api/whoami` returns `{"user":"…","role":"reader"|"writer"}`. The UI
    hides write controls when `role !== "writer"`. **The UI's check is UX,
    not security** — nginx is the actual security boundary and must also
-   reject writes from non-writers (see `limit_except` below). If the `role`
-   field is absent entirely the UI defaults to writer (backwards-compatible
-   with deployments that haven't wired role mapping yet).
+   reject writes from non-writers (see the `$aptly_blocked` gate below).
+   If the `role` field is absent entirely the UI defaults to writer
+   (backwards-compatible with deployments that haven't wired role
+   mapping yet).
 
 Example with [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/)
 in front and a single role mapping from IdP groups to `reader` / `writer`:
@@ -107,6 +108,16 @@ in front and a single role mapping from IdP groups to `reader` / `writer`:
 map $authed_groups $aptly_role {
   "~\baptly-writers\b"   "writer";
   default                "reader";
+}
+
+# Composite gate on role + method. Empty = allowed, "1" = blocked.
+# Writers can do anything; readers can only GET/HEAD. Aptly uses
+# POST/PUT/DELETE for every mutation, so this covers the full write
+# surface.
+map "$aptly_role:$request_method" $aptly_blocked {
+  "~^writer:"             "";
+  "~^reader:(GET|HEAD)$"  "";
+  default                 "1";
 }
 
 server {
@@ -154,16 +165,23 @@ server {
   }
 
   # Proxy to aptly daemon. The actual security boundary lives here:
-  # readers are blocked from any non-GET request regardless of what the
-  # UI shows. The bearer token (if upstream needs one) is injected from
-  # nginx; it never reaches the browser.
+  # the $aptly_blocked map rejects non-writers on any mutation. The
+  # bearer token (if upstream needs one) is injected from nginx; it
+  # never reaches the browser.
+  #
+  # Same two-location dance as /api/whoami: `if ($aptly_blocked)`
+  # runs in nginx's rewrite phase, before auth_request fires, so
+  # checking it directly here would always see "1" (empty
+  # $aptly_role). try_files defers the check into @api's content
+  # phase, by which time auth_request_set has populated everything.
   location /api/ {
-    # Block writes for non-writers. limit_except inverts the listed
-    # methods, so the inner block applies to everything except GET/HEAD.
-    limit_except GET HEAD {
-      if ($aptly_role != "writer") {
-        return 403;
-      }
+    try_files _ @api;
+  }
+  location @api {
+    auth_request off;
+
+    if ($aptly_blocked) {
+      return 403;
     }
 
     proxy_pass http://127.0.0.1:8080;
@@ -188,11 +206,12 @@ server {
 
 **Notes**
 
-- The `map` block lives at `http {}` level (not inside `server {}`). Put
-  it in the same file alongside `server`, or in a separate `conf.d` file
-  that's included before this one.
-- Aptly's REST API uses GET for reads and POST/PUT/DELETE for all writes,
-  so the method-based `limit_except` covers the full mutation surface.
+- Both `map` blocks live at `http {}` level (not inside `server {}`). Put
+  them in the same file alongside `server`, or in a separate `conf.d`
+  file that's included before this one.
+- Aptly's REST API uses GET for reads and POST/PUT/DELETE for all
+  writes, so the method-based check in `$aptly_blocked` covers the full
+  mutation surface.
 - If your IdP delivers groups via a different oauth2-proxy header (e.g.
   `X-Forwarded-Groups`), swap the `auth_request_set` line accordingly.
 - `signout_url` is an opaque string the SPA renders as a top-bar Sign
@@ -200,8 +219,9 @@ server {
   Common values: `/oauth2/sign_out?rd=/` (oauth2-proxy), `/api/logout`
   (Authelia), `/_pomerium/sign_out` (Pomerium). Omit the field
   entirely to hide the button.
-- If you don't run an auth proxy at all, omit the `auth_request` lines
-  and the `/api/whoami` block. The UI defaults to writer in that case.
+- If you don't run an auth proxy at all, omit the `auth_request` lines,
+  the `/api/whoami` block, and both `map`s — point `/api/` straight at
+  `proxy_pass`. The UI defaults to writer in that case.
 
 ### Subpath mount
 
@@ -219,9 +239,14 @@ location /aptly/ {
 }
 
 location /aptly/api/ {
+  try_files _ @api;
+}
+location @api {
+  auth_request off;
+  if ($aptly_blocked) { return 403; }
   rewrite ^/aptly/api/(.*) /api/$1 break;
   proxy_pass http://127.0.0.1:8080;
-  # …auth/role headers, limit_except, etc.
+  # …auth headers, client_max_body_size, etc.
 }
 ```
 
@@ -246,7 +271,8 @@ follow the mount automatically. A full worked example with oauth2-proxy
 Write actions (upload+add, create/delete snapshots, update mirrors,
 publish/update/drop, …) appear when the proxy reports `role: "writer"`
 via `/api/whoami`. The UI's check is UX only — see the nginx example
-above for the `limit_except` block that enforces the boundary server-side.
+above for the `$aptly_blocked` gate that enforces the boundary
+server-side.
 
 ## Aesthetic notes
 
@@ -260,11 +286,13 @@ above for the `limit_except` block that enforces the boundary server-side.
 
 ```
 src/
-  lib/         api client, query hooks, formatters
+  lib/         api client, query hooks, mutations, formatters
   components/
     ui/        primitives (button, input, badge, table, ...)
     data/      kicker headers, status dot, key-value list
     layout/    Shell + TopNav
+    actions/   write-action dialogs (publish, snapshot, upload, ...)
+    tasks/     task drawer + watcher
   pages/       one file per route
   index.css    design tokens + base layer
 ```
