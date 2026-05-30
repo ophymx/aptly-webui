@@ -29,7 +29,7 @@ jobs:
       - name: Build and package
         run: make deb
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: aptly-webui-deb
           path: dist-pkg/*.deb
