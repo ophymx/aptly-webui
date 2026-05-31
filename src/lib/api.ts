@@ -366,6 +366,17 @@ export const api = {
     )
   },
 
+  // Remove a set of packages from a local repo by package key. Aptly accepts
+  // multi-line keys per `api.PackageRefsParams` in the swagger schema.
+  repoRemovePackages: (repo: string, packageRefs: string[]) =>
+    request<Task>(
+      `/repos/${encodeURIComponent(repo)}/packages${qs({ _async: true })}`,
+      {
+        method: 'DELETE',
+        body: JSON.stringify({ PackageRefs: packageRefs }),
+      },
+    ),
+
   // Move uploaded files from a staging dir into a local repo.
   repoAddFromFiles: (
     repo: string,
@@ -384,6 +395,11 @@ export const api = {
   filesListDirs: () => request<string[]>('/files'),
   filesDeleteDir: (dir: string) =>
     request<unknown>(`/files/${encodeURIComponent(dir)}`, { method: 'DELETE' }),
+
+  // Reclaims orphan pool files no longer referenced by any repo/snapshot.
+  // Equivalent to `aptly db cleanup`. Long-running on big pools, so _async.
+  dbCleanup: () =>
+    request<Task>(`/db/cleanup${qs({ _async: true })}`, { method: 'POST' }),
 }
 
 /**

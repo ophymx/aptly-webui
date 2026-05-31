@@ -159,6 +159,39 @@ export function useDropPublish() {
   })
 }
 
+export function useDbCleanup() {
+  const qc = useQueryClient()
+  const handlers = notify('DB cleanup')
+  return useMutation({
+    mutationFn: api.dbCleanup,
+    onSuccess: (task) => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      handlers.onSuccess(task)
+    },
+    onError: handlers.onError,
+  })
+}
+
+export function useRemoveRepoPackages() {
+  const qc = useQueryClient()
+  const handlers = notify('Package remove')
+  return useMutation({
+    mutationFn: ({
+      repo,
+      packageRefs,
+    }: {
+      repo: string
+      packageRefs: string[]
+    }) => api.repoRemovePackages(repo, packageRefs),
+    onSuccess: (task, vars) => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      qc.invalidateQueries({ queryKey: ['repo-packages', vars.repo] })
+      handlers.onSuccess(task)
+    },
+    onError: handlers.onError,
+  })
+}
+
 /**
  * Two-step: upload files to a staging dir, then add them to a repo.
  * Returns the final task once the repo-add is submitted.

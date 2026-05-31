@@ -1,10 +1,11 @@
 import { Link, useParams } from 'react-router-dom'
 import { useState } from 'react'
-import { useRepo, useRepoPackages } from '@/lib/queries'
+import { useCanWrite, useRepo, useRepoPackages } from '@/lib/queries'
 import { PageHeader } from '@/components/data/PageHeader'
 import { KeyValueList } from '@/components/data/KeyValue'
 import { ErrorState } from '@/components/data/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { PackageList } from './_packages-shared'
 import { UploadAndAddAction } from '@/components/actions/UploadAndAddAction'
 import { CreateSnapshotAction } from '@/components/actions/CreateSnapshotAction'
@@ -13,6 +14,7 @@ import { PublishAction } from '@/components/actions/PublishAction'
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>()
   const repo = useRepo(name)
+  const canWrite = useCanWrite()
   const [q, setQ] = useState('')
   const packages = useRepoPackages(name, q)
 
@@ -38,6 +40,11 @@ export function RepoDetail() {
               <UploadAndAddAction repoName={name} />
               <CreateSnapshotAction source="repo" sourceName={name} />
               <PublishAction sourceKind="local" sourceName={name} />
+              {canWrite && (
+                <Link to={`/repos/${encodeURIComponent(name)}/manage`}>
+                  <Button>Manage</Button>
+                </Link>
+              )}
             </>
           )
         }

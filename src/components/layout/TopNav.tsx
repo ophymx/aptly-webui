@@ -12,6 +12,7 @@ const sections = [
   { to: '/snapshots', label: 'Snapshots' },
   { to: '/publish', label: 'Publications' },
   { to: '/packages', label: 'Packages' },
+  { to: '/tasks', label: 'Tasks' },
 ]
 
 export function TopNav() {
